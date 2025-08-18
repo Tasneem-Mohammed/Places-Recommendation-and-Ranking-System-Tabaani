@@ -1,3 +1,6 @@
 /src/models/roberta/
 /src/models/araberta/
+__pycache__/
+refactoring/
+.venv/
 .env

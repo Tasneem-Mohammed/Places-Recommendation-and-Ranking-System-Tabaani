@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Tuple
 
-from core_logic.nlp_models.sentiment_analyzer import SentimentAnalyzer # Assuming this exists
+from core_logic.nlp_models.sentiment_analyzer import ReviewSentimentAnalyzer # Assuming this exists
 from core_logic.nlp_models.preference_embedder import PreferenceEmbedder
 from core_logic.scoring import calculate_place_attribute_profile, calculate_preference_score
 from app.utils.scoring_utils import calculate_proximity_score, calculate_budget_score, calculate_aggregated_sentiment
@@ -9,7 +9,7 @@ def calculate_final_score(
     place_data: Dict[str, Any],
     user_data: Dict[str, Any],
     embedder: PreferenceEmbedder,
-    sentiment_analyzer: SentimentAnalyzer,
+    sentiment_analyzer: ReviewSentimentAnalyzer,
     predefined_attributes: List[str],
     max_distance_km: float = 10
 ) -> Dict[str, float]:
@@ -56,7 +56,7 @@ def rank_places(
     user_data: Dict[str, Any],
     places_list: List[Dict[str, Any]],
     embedder: PreferenceEmbedder,
-    sentiment_analyzer: SentimentAnalyzer,
+    sentiment_analyzer: ReviewSentimentAnalyzer,
     predefined_attributes: List[str],
     max_distance_km: float = 10
 ) -> List[Dict[str, Any]]:

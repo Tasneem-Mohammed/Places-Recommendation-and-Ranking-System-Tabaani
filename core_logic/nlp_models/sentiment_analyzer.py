@@ -37,8 +37,8 @@ class ReviewSentimentAnalyzer:
     """
     def __init__(
         self,
-        en_model_path: str = './models/roberta',
-        ar_model_path: str = './models/araberta'
+        en_model_path: str = 'hayn404/roberta-finetuned',
+        ar_model_path: str = 'hayn404/araberta_finetuned'
     ):
         """
         Initializes and loads sentiment analysis models from specified paths.

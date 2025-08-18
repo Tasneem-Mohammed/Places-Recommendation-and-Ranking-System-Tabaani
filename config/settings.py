@@ -5,6 +5,7 @@ load_dotenv()
 
 # Environment variables
 MAPS_API_KEY = os.getenv("MAPS_API_KEY")
+SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 
 # Directory paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
