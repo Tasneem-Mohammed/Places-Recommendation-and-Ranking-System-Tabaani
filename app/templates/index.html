@@ -841,6 +841,10 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="location">City</label>
+                    <input type="text" id="location" value="Cairo" placeholder="Enter your city...">
+                </div>
+                <div class="form-group">
                     <label for="maxDistance">Max Distance (km)</label>
                     <input type="number" id="maxDistance" value="10" min="1" max="50">
                 </div>
@@ -929,6 +933,7 @@
                         }
 
                         const userBudget = parseInt(document.getElementById('budget').value);
+                        const userCity = document.getElementById('location').value.trim();
                         const maxDistance = parseFloat(document.getElementById('maxDistance').value);
                         
                         // Send the request with all data, including location
@@ -938,6 +943,7 @@
                             body: JSON.stringify({
                                 preferences: preferences,
                                 budget: userBudget,
+                                city: userCity,
                                 max_distance: maxDistance,
                                 latitude: userLatitude,     // ADDED: User's latitude
                                 longitude: userLongitude    // ADDED: User's longitude
@@ -990,6 +996,7 @@
             }
 
             const userBudget = parseInt(document.getElementById('budget').value);
+            const userCity = document.getElementById('location').value.trim();
             const maxDistance = parseFloat(document.getElementById('maxDistance').value);
 
             fetch('/api/recommend', {
@@ -998,6 +1005,7 @@
                 body: JSON.stringify({
                     preferences: preferences,
                     budget: userBudget,
+                    city: userCity,
                     max_distance: maxDistance
                     // No latitude/longitude in this fallback
                 })

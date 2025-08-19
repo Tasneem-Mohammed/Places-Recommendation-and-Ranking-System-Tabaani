@@ -164,6 +164,8 @@ async def get_recommendations():
             logger.warning("City or user coordinates are required.")
             return jsonify({"success": False, "error": "City or user coordinates are required."}), 400
 
+        
+
         # Determine the initial set of places to filter
         if user_city:
             filtered_places = [p for p in places_data if user_city in p.get('address', '').strip().lower()]
@@ -171,11 +173,13 @@ async def get_recommendations():
             filtered_places = places_data
         
         # Check if the existing dataset is sufficient for the city, if not, augment it
-        if len(filtered_places) < 10 and restaurant_agent and google_maps_collector:
+#        if len(filtered_places) < 10 and restaurant_agent and google_maps_collector:
+        if len(filtered_places) < 10 and restaurant_agent:
+
             logger.info(f"Fewer than 10 places found in {user_city}. Augmenting data with search agent.")
-            new_places_json = await restaurant_agent.execute(query=user_city, max_urls_to_process=10)
+            new_places_json = await restaurant_agent.execute(query=user_city, max_urls_to_process=50)
             new_place_names = json.loads(new_places_json).get("restaurants", [])
-            
+            print(f"New place names found: {new_places_json}")
             if new_place_names:
                 logger.info(f"Initiating Google Maps collection for {len(new_place_names)} new places.")
                 temp_csv_path = "temp_new_restaurants.csv"
@@ -232,7 +236,7 @@ async def get_recommendations():
             "budget": data.get('budget', 2),
             "coords": user_coords
         }
-
+        print("processed_places:", processed_places)
         # The core ranking logic is now a standalone function
         ranked_places = rank_places(
             user_data=user_data,

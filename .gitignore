@@ -4,3 +4,6 @@ __pycache__/
 refactoring/
 .venv/
 .env
+data/
+*.pyc
+venv/
