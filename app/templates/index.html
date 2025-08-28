@@ -1,506 +1,9 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Place Recommender</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #ffffff;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 0;
-            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: rgba(45, 45, 45, 0.8);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 107, 53, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        .card h2 {
-            color: #ff6b35;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #ff8c42;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid rgba(255, 107, 53, 0.3);
-            border-radius: 8px;
-            background: rgba(26, 26, 26, 0.8);
-            color: #ffffff;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #ff6b35;
-            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-        }
-
-        .preferences-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .preference-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(26, 26, 26, 0.5);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 107, 53, 0.1);
-        }
-
-        .preference-item input[type="range"] {
-            flex: 1;
-            height: 6px;
-            background: rgba(255, 107, 53, 0.2);
-            border-radius: 3px;
-            outline: none;
-        }
-
-        .preference-item input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #ff6b35;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .preference-item input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: #ff6b35;
-            border-radius: 50%;
-            cursor: pointer;
-            border: none;
-        }
-
-        .preference-value {
-            min-width: 30px;
-            text-align: center;
-            color: #ff8c42;
-            font-weight: bold;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-full {
-            width: 100%;
-            margin-top: 20px;
-        }
-
-        .results-section {
-            margin-top: 30px;
-        }
-
-        .results-grid {
-            display: grid;
-            gap: 20px;
-        }
-
-        .place-card {
-            background: linear-gradient(135deg, rgba(45, 45, 45, 0.9) 0%, rgba(35, 35, 35, 0.9) 100%);
-            border-radius: 15px;
-            padding: 25px;
-            border: 2px solid rgba(255, 107, 53, 0.2);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .place-card:hover {
-            transform: translateY(-5px);
-            border-color: #ff6b35;
-            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
-        }
-
-        .place-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #ff6b35, #ff8c42);
-        }
-
-        .place-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .place-name {
-            font-size: 1.3em;
-            font-weight: 700;
-            color: #ffffff;
-        }
-
-        .place-score {
-            background: linear-gradient(135deg, #ff6b35, #ff8c42);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-
-        .place-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .detail-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: rgba(26, 26, 26, 0.5);
-            border-radius: 6px;
-            border-left: 3px solid #ff6b35;
-        }
-
-        .detail-label {
-            color: #ff8c42;
-            font-weight: 500;
-        }
-
-        .detail-value {
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #ff8c42;
-        }
-
-        .loading::after {
-            content: '';
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(255, 107, 53, 0.3);
-            border-radius: 50%;
-            border-top-color: #ff6b35;
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .budget-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.8em;
-            color: #888;
-        }
-
-        .icon {
-            font-size: 1.2em;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .preferences-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .place-details {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🍽️ AI Place Recommender</h1>
-            <p>Discover your perfect dining and entertainment spots</p>
-        </div>
-
-        <div class="main-content">
-            <div class="card">
-                <h2><span class="icon">🎯</span> Your Preferences</h2>
-                <div class="preferences-grid" id="preferencesGrid">
-                </div>
-            </div>
-
-            <div class="card">
-                <h2><span class="icon">⚙️</span> Settings</h2>
-                <div class="form-group">
-                    <label for="budget">Budget Range</label>
-                    <select id="budget">
-                        <option value="0">$ - Budget Friendly</option>
-                        <option value="1">$$ - Moderate</option>
-                        <option value="2" selected>$$$ - Mid-Range</option>
-                        <option value="3">$$$$ - Expensive</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="location">City</label>
-                    <input type="text" id="location" value="Cairo" placeholder="Enter your city...">
-                </div>
-                <div class="form-group">
-                    <label for="maxDistance">Max Distance (km)</label>
-                    <input type="number" id="maxDistance" value="10" min="1" max="50">
-                </div>
-                <button class="btn btn-full" onclick="getRecommendations()">
-                    Get Recommendations
-                </button>
-            </div>
-        </div>
-
-        <div class="results-section">
-            <div class="card">
-                <h2><span class="icon">📍</span> Recommended Places</h2>
-                <div id="resultsContainer">
-                    <p style="text-align: center; color: #888; padding: 40px;">
-                        Adjust your preferences above and click "Get Recommendations" to see personalized suggestions.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Predefined attributes - to be updated later
-        const predefinedAttributes = [
-            "Cozy", "Trendy", "Romantic", "Lively", "Quiet", "Elegant", "Casual", "Artistic",
-            "Bohemian", "Family-Friendly", "Pet-Friendly", "Outdoor Seating", "Good for Groups",
-            "Good for Solo", "Gourmet", "Comfort Food", "Healthy", "Vegan-Friendly", "Dessert",
-            "Coffee", "Date", "Scenic View", "Parking Available", "Wheelchair Accessible",
-            "Wi-Fi Available", "Workspace"
-        ];
-
-        /**
-         * Initialize the user preference grid with sliders for each predefined attribute.
-         * Sliders are created dynamically based on the predefinedAttributes array.
-         * Each slider is bound to an oninput event that updates the corresponding value in the preferences object.
-         */
-        function initializePreferences() {
-            const grid = document.getElementById('preferencesGrid');
-            
-            predefinedAttributes.forEach(attribute => {
-                const item = document.createElement('div');
-                item.className = 'preference-item';
-                item.innerHTML = `
-                    <label style="flex: 1; margin-bottom: 0; font-size: 0.9em;">${attribute}</label>
-                    <input type="range" min="0" max="100" value="0" id="pref-${attribute}" oninput="updatePreferenceValue('${attribute}', this.value)">
-                    <span class="preference-value" id="val-${attribute}">0</span>
-                `;
-                grid.appendChild(item);
-            });
-        }
-
-        function updatePreferenceValue(attribute, value) {
-            document.getElementById(`val-${attribute}`).textContent = value;
-        }
-
-        function getRecommendations() {
-            const resultsContainer = document.getElementById('resultsContainer');
-            resultsContainer.innerHTML = '<div class="loading">Analyzing your preferences and finding the best matches...</div>';
-
-            //gather user preferences and other settings
-            const preferences = {};
-            let totalWeight = 0;
-            predefinedAttributes.forEach(attr => {
-                const value = parseInt(document.getElementById(`pref-${attr}`).value);
-                if (value > 0) {
-                    preferences[attr] = value / 100;
-                    totalWeight += value / 100;
-                }
-            });
-            if (totalWeight > 0) {
-                Object.keys(preferences).forEach(key => {
-                    preferences[key] = preferences[key] / totalWeight;
-                });
-            }
-
-            const userBudget = parseInt(document.getElementById('budget').value);
-            const userCity = document.getElementById('location').value.trim();
-            const maxDistance = parseFloat(document.getElementById('maxDistance').value);
-
-            fetch('/api/recommend', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    preferences: preferences,
-                    budget: userBudget,
-                    city: userCity,
-                    max_distance: maxDistance
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayResults(data.recommendations);
-                } else {
-                    resultsContainer.innerHTML = `<p style='color: red; text-align: center;'>${data.error || 'No recommendations found.'}</p>`;
-                }
-            })
-            .catch(err => {
-                resultsContainer.innerHTML = `<p style='color: red; text-align: center;'>Error: ${err}</p>`;
-            });
-        }
-
-        function displayResults(places) {
-            const resultsContainer = document.getElementById('resultsContainer');
-            
-            if (places.length === 0) {
-                resultsContainer.innerHTML = '<p style="text-align: center; color: #888;">No places found matching your criteria.</p>';
-                return;
-            }
-
-            const budgetLabels = ['$', '$$', '$$$', '$$$$'];
-            
-            resultsContainer.innerHTML = places.map((place, index) => {
-                const score = place.scoring_details.final_score;
-                const details = place.scoring_details;
-                
-                return `
-                    <div class="place-card">
-                        <div class="place-header">
-                            <div class="place-name">${index + 1}. ${place.name}</div>
-                            <div class="place-score">Score: ${(score * 100).toFixed(1)}%</div>
-                        </div>
-                        <p style="color: #ccc; margin-bottom: 15px;">${place.address}</p>
-                        <div class="place-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Sentiment</span>
-                                <span class="detail-value">${(details.sentiment_score * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Preference Match</span>
-                                <span class="detail-value">${(details.preference_score * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Proximity</span>
-                                <span class="detail-value">${(details.proximity_score * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Budget Match</span>
-                                <span class="detail-value">${budgetLabels[place.budget]} (${(details.budget_score * 100).toFixed(1)}%)</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // init the app
-        document.addEventListener('DOMContentLoaded', function() {
-            initializePreferences();
-        });
-    </script>
-</body>
-</html> -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Place Recommender</title>
+    <title>🍽️ AI Restaurant Recommender</title>
     <style>
         * {
             margin: 0;
@@ -510,573 +13,945 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #ffffff;
-            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            padding: 20px;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+            color: white;
+            padding: 40px;
             text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 0;
-            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
         }
 
         .header h1 {
-            font-size: 2.5em;
+            font-size: 2.5rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .header p {
-            font-size: 1.2em;
+            font-size: 1.1rem;
             opacity: 0.9;
         }
 
-        .main-content {
+        .data-source {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .form-section {
+            padding: 40px;
+        }
+
+        .form-title {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
             margin-bottom: 30px;
         }
 
-        .card {
-            background: rgba(45, 45, 45, 0.8);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 107, 53, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        .card h2 {
-            color: #ff6b35;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .form-group {
-            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         .form-group label {
-            display: block;
+            font-weight: 600;
+            color: #555;
             margin-bottom: 8px;
-            color: #ff8c42;
-            font-weight: 500;
+            font-size: 1rem;
         }
 
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid rgba(255, 107, 53, 0.3);
-            border-radius: 8px;
-            background: rgba(26, 26, 26, 0.8);
-            color: #ffffff;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+        .form-group select,
+        .form-group input {
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            transition: all 0.3s ease;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group input:focus {
             outline: none;
-            border-color: #ff6b35;
-            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .preferences-grid {
+        .location-controls {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
 
-        .preference-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(26, 26, 26, 0.5);
+        .location-status {
+            background: rgba(255,255,255,0.8);
+            padding: 15px;
             border-radius: 8px;
-            border: 1px solid rgba(255, 107, 53, 0.1);
-        }
-
-        .preference-item input[type="range"] {
-            flex: 1;
-            height: 6px;
-            background: rgba(255, 107, 53, 0.2);
-            border-radius: 3px;
-            outline: none;
-        }
-
-        .preference-item input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #ff6b35;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .preference-item input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: #ff6b35;
-            border-radius: 50%;
-            cursor: pointer;
-            border: none;
-        }
-
-        .preference-value {
-            min-width: 30px;
             text-align: center;
-            color: #ff8c42;
-            font-weight: bold;
+            font-size: 0.9rem;
+            color: #666;
+            border-left: 4px solid #667eea;
         }
 
-        .btn {
-            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 15px 30px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 15px 40px;
+            font-size: 1.1rem;
             font-weight: 600;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-full {
             width: 100%;
-            margin-top: 20px;
         }
 
-        .results-section {
-            margin-top: 30px;
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .results-grid {
-            display: grid;
-            gap: 20px;
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        .place-card {
-            background: linear-gradient(135deg, rgba(45, 45, 45, 0.9) 0%, rgba(35, 35, 35, 0.9) 100%);
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .results-title {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .restaurant-card {
+            background: white;
             border-radius: 15px;
             padding: 25px;
-            border: 2px solid rgba(255, 107, 53, 0.2);
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .place-card:hover {
-            transform: translateY(-5px);
-            border-color: #ff6b35;
-            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
-        }
-
-        .place-card::before {
+        .restaurant-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #ff6b35, #ff8c42);
+            background: linear-gradient(90deg, #667eea, #764ba2);
         }
 
-        .place-header {
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .restaurant-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 15px;
         }
 
-        .place-name {
-            font-size: 1.3em;
+        .restaurant-name {
+            font-size: 1.4rem;
             font-weight: 700;
-            color: #ffffff;
+            color: #333;
+            margin-bottom: 5px;
         }
 
-        .place-score {
-            background: linear-gradient(135deg, #ff6b35, #ff8c42);
+        .restaurant-rank {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
             color: white;
-            padding: 8px 15px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
-        .place-details {
+        .restaurant-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            color: #666;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .proximity-score {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-left: 3px solid #667eea;
+        }
+
+        .ai-summary {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .ai-summary h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .ai-summary p {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .highlights {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-top: 15px;
         }
 
-        .detail-item {
+        .highlight-section {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .highlight-section h5 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .highlight-tags {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: rgba(26, 26, 26, 0.5);
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .highlight-tag {
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #555;
+        }
+
+        .scoring-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 8px;
+        }
+
+        .score-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
             border-radius: 6px;
-            border-left: 3px solid #ff6b35;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        .detail-label {
-            color: #ff8c42;
-            font-weight: 500;
+        .score-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
         }
 
-        .detail-value {
-            color: #ffffff;
-            font-weight: 600;
+        .score-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
         }
 
-        .loading {
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .no-results {
             text-align: center;
             padding: 40px;
-            color: #ff8c42;
-        }
-
-        .loading::after {
-            content: '';
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(255, 107, 53, 0.3);
-            border-radius: 50%;
-            border-top-color: #ff6b35;
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .budget-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.8em;
-            color: #888;
-        }
-
-        .icon {
-            font-size: 1.2em;
-        }
-        
-        #location-status {
-            font-size: 0.9em;
-            color: #ff8c42;
-            text-align: center;
-            margin-top: 10px;
+            color: #666;
         }
 
         @media (max-width: 768px) {
-            .main-content {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-grid {
                 grid-template-columns: 1fr;
             }
             
-            .preferences-grid {
+            .location-controls {
                 grid-template-columns: 1fr;
             }
             
-            .place-details {
+            .restaurant-details {
                 grid-template-columns: 1fr;
+            }
+            
+            .highlights {
+                grid-template-columns: 1fr;
+            }
+            
+            .scoring-details {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
+        
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🍽️ AI Place Recommender</h1>
-            <p>Discover your perfect dining and entertainment spots</p>
+            <h1>🍽️ Restaurant Recommender</h1>
+            <p>Discover perfect dining experiences powered by AI review analysis & location proximity</p>
+            <div class="data-source" id="dataSource">
+                Data Source: <span id="sourceInfo">Loading...</span>
+            </div>
         </div>
 
-        <div class="main-content">
-            <div class="card">
-                <h2><span class="icon">🎯</span> Your Preferences</h2>
-                <div class="preferences-grid" id="preferencesGrid">
+        <div class="form-section">
+            <h2 class="form-title">
+                📍 Find Your Perfect Restaurant
+            </h2>
+            <p style="color: #666; margin-bottom: 30px;">Select your preferences and let us find restaurants near you</p>
+            
+            <form id="recommendationForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="country">Country *</label>
+                        <select id="country" name="country" required>
+                            <option value="">Select country</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="city">City (optional)</label>
+                        <select id="city" name="city">
+                            <option value="">Select city (optional)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="suitability">Suitability (optional)</label>
+                        <select id="suitability" name="suitability">
+                            <option value="">Select suitability (optional)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="budget">Budget</label>
+                        <select id="budget" name="budget">
+                            <option value="0">$ - Budget Friendly</option>
+                            <option value="1">$$ - Moderate</option>
+                            <option value="2" selected>$$$ - Mid-Range</option>
+                            <option value="3">$$$$ - Expensive</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
-            <div class="card">
-                <h2><span class="icon">⚙️</span> Settings</h2>
-                <div class="form-group">
-                    <label for="budget">Budget Range</label>
-                    <select id="budget">
-                        <option value="0">$ - Budget Friendly</option>
-                        <option value="1">$$ - Moderate</option>
-                        <option value="2" selected>$$$ - Mid-Range</option>
-                        <option value="3">$$$$ - Expensive</option>
-                    </select>
+                <div class="location-controls">
+                    <div class="form-group">
+                        <label for="maxDistance">Max Distance (km)</label>
+                        <input type="number" id="maxDistance" name="maxDistance" value="10" min="1" max="50">
+                    </div>
+                    <div class="location-status" id="locationStatus">
+                        Click "Get Recommendations" to detect your location
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="location">City</label>
-                    <input type="text" id="location" value="Cairo" placeholder="Enter your city...">
+
+                <div class="form-section" style="padding: 0; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Preference Attributes (optional)</label>
+                        <div id="attributesContainer" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="maxDistance">Max Distance (km)</label>
-                    <input type="number" id="maxDistance" value="10" min="1" max="50">
-                </div>
-                <button class="btn btn-full" onclick="getRecommendations()">
-                    Get Recommendations
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    GET RECOMMENDATIONS
                 </button>
-                <div id="location-status"></div>
-            </div>
+            </form>
         </div>
 
-        <div class="results-section">
-            <div class="card">
-                <h2><span class="icon">📍</span> Recommended Places</h2>
-                <div id="resultsContainer">
-                    <p style="text-align: center; color: #888; padding: 40px;">
-                        Adjust your preferences above and click "Get Recommendations" to see personalized suggestions.
-                    </p>
-                </div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>AI is analyzing restaurants and detecting your location...</p>
+        </div>
+
+        <!-- Main map section placed before the restaurant cards -->
+        <div style="padding: 0 40px 20px 40px;">
+            <div id="mainMap" style="width: 100%; height: 460px; border-radius: 14px; border: 1px solid #e6eaf0; box-shadow: 0 10px 25px rgba(0,0,0,0.08);"></div>
+        </div>
+
+        <div class="results" id="results">
+            <h2 class="results-title">🎯 Your Personalized Restaurant Recommendations</h2>
+            <div id="restaurantList"></div>
+            <div id="moreRestaurants" style="margin-top: 30px; display: none;">
+                <h3 class="results-title" style="font-size:1.4rem; margin-bottom: 12px;">🍽️ More restaurants in this region</h3>
+                <div id="moreRestaurantsList" style="padding: 16px; background:#f8f9fa; border:1px solid #e6eaf0; border-radius: 10px;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Predefined attributes - to be updated later
-        const predefinedAttributes = [
-            "Cozy", "Trendy", "Romantic", "Lively", "Quiet", "Elegant", "Casual", "Artistic",
-            "Bohemian", "Family-Friendly", "Pet-Friendly", "Outdoor Seating", "Good for Groups",
-            "Good for Solo", "Gourmet", "Comfort Food", "Healthy", "Vegan-Friendly", "Dessert",
-            "Coffee", "Date", "Scenic View", "Parking Available", "Wheelchair Accessible",
-            "Wi-Fi Available", "Workspace"
-        ];
+        // Global variables
+        let countries = [];
+        let cities = [];
+        let suitabilities = [];
+        let attributes = [];
+        let userLocation = null;
 
-        /**
-         * Initialize the user preference grid with sliders for each predefined attribute.
-         * Sliders are created dynamically based on the predefinedAttributes array.
-         * Each slider is bound to an oninput event that updates the corresponding value in the preferences object.
-         */
-        function initializePreferences() {
-            const grid = document.getElementById('preferencesGrid');
-            
-            predefinedAttributes.forEach(attribute => {
-                const item = document.createElement('div');
-                item.className = 'preference-item';
-                item.innerHTML = `
-                    <label style="flex: 1; margin-bottom: 0; font-size: 0.9em;">${attribute}</label>
-                    <input type="range" min="0" max="100" value="0" id="pref-${attribute}" oninput="updatePreferenceValue('${attribute}', this.value)">
-                    <span class="preference-value" id="val-${attribute}">0</span>
-                `;
-                grid.appendChild(item);
-            });
-        }
+        // DOM elements
+        const countrySelect = document.getElementById('country');
+        const citySelect = document.getElementById('city');
+        const suitabilitySelect = document.getElementById('suitability');
+        const form = document.getElementById('recommendationForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const restaurantList = document.getElementById('restaurantList');
+        const submitBtn = document.getElementById('submitBtn');
+        const sourceInfo = document.getElementById('sourceInfo');
+        const locationStatus = document.getElementById('locationStatus');
+        const attributesContainer = document.getElementById('attributesContainer');
 
-        function updatePreferenceValue(attribute, value) {
-            document.getElementById(`val-${attribute}`).textContent = value;
-        }
-
-        // MODIFIED FUNCTION: Fetches user location before getting recommendations
-        function getRecommendations() {
-            const resultsContainer = document.getElementById('resultsContainer');
-            const statusMessage = document.getElementById('location-status');
-            
-            resultsContainer.innerHTML = '<div class="loading">Analyzing your preferences and finding the best matches...</div>';
-            statusMessage.textContent = 'Getting your location...';
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const userLatitude = position.coords.latitude;
-                        const userLongitude = position.coords.longitude;
-                        statusMessage.textContent = `Location found! Lat: ${userLatitude.toFixed(4)}, Lng: ${userLongitude.toFixed(4)}`;
-
-                        // Gather user preferences and other settings
-                        const preferences = {};
-                        let totalWeight = 0;
-                        predefinedAttributes.forEach(attr => {
-                            const value = parseInt(document.getElementById(`pref-${attr}`).value);
-                            if (value > 0) {
-                                preferences[attr] = value / 100;
-                                totalWeight += value / 100;
-                            }
-                        });
-                        if (totalWeight > 0) {
-                            Object.keys(preferences).forEach(key => {
-                                preferences[key] = preferences[key] / totalWeight;
-                            });
-                        }
-
-                        const userBudget = parseInt(document.getElementById('budget').value);
-                        const userCity = document.getElementById('location').value.trim();
-                        const maxDistance = parseFloat(document.getElementById('maxDistance').value);
-                        
-                        // Send the request with all data, including location
-                        fetch('/api/recommend', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                preferences: preferences,
-                                budget: userBudget,
-                                city: userCity,
-                                max_distance: maxDistance,
-                                latitude: userLatitude,     // ADDED: User's latitude
-                                longitude: userLongitude    // ADDED: User's longitude
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                displayResults(data.recommendations);
-                            } else {
-                                resultsContainer.innerHTML = `<p style='color: red; text-align: center;'>${data.error || 'No recommendations found.'}</p>`;
-                            }
-                        })
-                        .catch(err => {
-                            resultsContainer.innerHTML = `<p style='color: red; text-align: center;'>Error: ${err}</p>`;
-                        });
-                    },
-                    (error) => {
-                        console.error("Error getting location:", error);
-                        statusMessage.innerHTML = '<p style="color: red;">Unable to get your location. Proximity scores will not be calculated.</p>';
-                        
-                        // Fallback: Continue without location data
-                        sendRecommendationsWithoutLocation();
-                    }
-                );
-            } else {
-                statusMessage.innerHTML = '<p style="color: red;">Geolocation is not supported by your browser. Proximity scores will not be calculated.</p>';
-                sendRecommendationsWithoutLocation();
+        // Initialize the application
+        async function init() {
+            try {
+                await loadCountries();
+                await loadSuitabilities();
+                await loadAttributes();
+            } catch (error) {
+                showError('Failed to initialize application: ' + error.message);
             }
         }
 
-        // NEW FUNCTION: Fallback to send recommendations without location
-        function sendRecommendationsWithoutLocation() {
-            const resultsContainer = document.getElementById('resultsContainer');
-            resultsContainer.innerHTML = '<div class="loading">Continuing without location data...</div>';
-
-            const preferences = {};
-            let totalWeight = 0;
-            predefinedAttributes.forEach(attr => {
-                const value = parseInt(document.getElementById(`pref-${attr}`).value);
-                if (value > 0) {
-                    preferences[attr] = value / 100;
-                    totalWeight += value / 100;
-                }
-            });
-            if (totalWeight > 0) {
-                Object.keys(preferences).forEach(key => {
-                    preferences[key] = preferences[key] / totalWeight;
-                });
-            }
-
-            const userBudget = parseInt(document.getElementById('budget').value);
-            const userCity = document.getElementById('location').value.trim();
-            const maxDistance = parseFloat(document.getElementById('maxDistance').value);
-
-            fetch('/api/recommend', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    preferences: preferences,
-                    budget: userBudget,
-                    city: userCity,
-                    max_distance: maxDistance
-                    // No latitude/longitude in this fallback
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
+        // Load countries from API
+        async function loadCountries() {
+            try {
+                const response = await fetch('/api/countries');
+                const data = await response.json();
+                
                 if (data.success) {
-                    displayResults(data.recommendations);
+                    countries = data.countries;
+                    populateSelect(countrySelect, countries);
+                    
+                    // Update data source info
+                    sourceInfo.textContent = `${data.data_source} (${data.total_restaurants} restaurants)`;
                 } else {
-                    resultsContainer.innerHTML = `<p style='color: red; text-align: center;'>${data.error || 'No recommendations found.'}</p>`;
+                    throw new Error(data.error);
                 }
-            })
-            .catch(err => {
-                resultsContainer.innerHTML = `<p style='color: red; text-align: center;'>Error: ${err}</p>`;
+            } catch (error) {
+                throw new Error('Failed to load countries: ' + error.message);
+            }
+        }
+
+        // Load suitabilities from API
+        async function loadSuitabilities() {
+            try {
+                const response = await fetch('/api/suitabilities');
+                const data = await response.json();
+                
+                if (data.success) {
+                    suitabilities = data.suitabilities;
+                    populateSelect(suitabilitySelect, suitabilities);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                throw new Error('Failed to load suitabilities: ' + error.message);
+            }
+        }
+
+        // Load predefined attributes for preference selection
+        async function loadAttributes() {
+            try {
+                const response = await fetch('/api/attributes');
+                const data = await response.json();
+                if (data.success) {
+                    attributes = data.attributes || [];
+                    renderAttributeCheckboxes(attributes);
+                }
+            } catch (error) {
+                console.warn('Failed to load attributes:', error);
+            }
+        }
+
+        function renderAttributeCheckboxes(list) {
+            attributesContainer.innerHTML = '';
+            list.forEach(attr => {
+                const id = 'attr-' + attr.replace(/\s+/g, '-').toLowerCase();
+                const wrapper = document.createElement('label');
+                wrapper.style.display = 'inline-flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.gap = '6px';
+                wrapper.style.background = '#f8f9fa';
+                wrapper.style.border = '1px solid #e1e5e9';
+                wrapper.style.borderRadius = '16px';
+                wrapper.style.padding = '6px 10px';
+                wrapper.style.fontSize = '0.9rem';
+                wrapper.htmlFor = id;
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.id = id;
+                input.name = 'preferences';
+                input.value = attr;
+                const span = document.createElement('span');
+                span.textContent = attr;
+                wrapper.appendChild(input);
+                wrapper.appendChild(span);
+                attributesContainer.appendChild(wrapper);
             });
         }
 
+        // Load cities for selected country
+        async function loadCities(country) {
+            try {
+                const response = await fetch(`/api/cities?country=${encodeURIComponent(country)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    cities = data.cities;
+                    populateSelect(citySelect, cities);
+                    citySelect.disabled = false;
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Failed to load cities:', error);
+                citySelect.innerHTML = '<option value="">Error loading cities</option>';
+                citySelect.disabled = true;
+            }
+        }
 
-        // MODIFIED FUNCTION: Displays the results, including distance if available
-        function displayResults(places) {
-            const resultsContainer = document.getElementById('resultsContainer');
+        // Get user location
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                locationStatus.textContent = 'Getting your location...';
+                
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            userLocation = {
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            };
+                            locationStatus.textContent = `Location found! Lat: ${userLocation.latitude.toFixed(4)}, Lng: ${userLocation.longitude.toFixed(4)}`;
+                            resolve(userLocation);
+                        },
+                        (error) => {
+                            console.error("Error getting location:", error);
+                            locationStatus.innerHTML = '<span style="color: #c62828;">Unable to get your location. Proximity scores will not be calculated.</span>';
+                            resolve(null);
+                        }
+                    );
+                } else {
+                    locationStatus.innerHTML = '<span style="color: #c62828;">Geolocation is not supported by your browser.</span>';
+                    resolve(null);
+                }
+            });
+        }
+
+        // Populate select element with options
+        function populateSelect(selectElement, options) {
+            // Keep the first option (placeholder)
+            const firstOption = selectElement.children[0];
+            selectElement.innerHTML = '';
+            selectElement.appendChild(firstOption);
             
-            if (places.length === 0) {
-                resultsContainer.innerHTML = '<p style="text-align: center; color: #888;">No places found matching your criteria.</p>';
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        // Handle country selection change
+        countrySelect.addEventListener('change', function() {
+            const selectedCountry = this.value;
+            
+            // Reset city selection
+            citySelect.innerHTML = '<option value="">Select city (optional)</option>';
+            citySelect.disabled = true;
+            
+            if (selectedCountry) {
+                loadCities(selectedCountry);
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const country = formData.get('country');
+            const city = formData.get('city');
+            const suitability = formData.get('suitability');
+            const maxDistance = parseFloat(formData.get('maxDistance'));
+            const budget = parseInt(formData.get('budget'));
+            const prefs = Array.from(document.querySelectorAll('input[name="preferences"]:checked')).map(i => i.value);
+            
+            if (!country) {
+                alert('Please select a country');
                 return;
             }
-
-            const budgetLabels = ['$', '$$', '$$$', '$$$$'];
             
-            resultsContainer.innerHTML = places.map((place, index) => {
-                const score = place.scoring_details.final_score;
-                const details = place.scoring_details;
+            await getRecommendations(country, city, suitability, maxDistance, budget, prefs);
+        });
+ 
+        // Get restaurant recommendations
+        async function getRecommendations(country, city, suitability, maxDistance, budget, preferences) {
+            try {
+                // Show loading state
+                showLoading();
                 
-                // NEW: Check if distance is available and display it
-                const distanceInfo = place.distance !== undefined ? `<div class="detail-item"><span class="detail-label">Distance</span><span class="detail-value">${place.distance.toFixed(1)} km</span></div>` : '';
+                // Get user location first
+                const location = await getUserLocation();
                 
-                return `
-                    <div class="place-card">
-                        <div class="place-header">
-                            <div class="place-name">${index + 1}. ${place.name}</div>
-                            <div class="place-score">Score: ${(score * 100).toFixed(1)}%</div>
-                        </div>
-                        <p style="color: #ccc; margin-bottom: 15px;">${place.address}</p>
-                        <div class="place-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Sentiment</span>
-                                <span class="detail-value">${(details.sentiment_score * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Preference Match</span>
-                                <span class="detail-value">${(details.preference_score * 100).toFixed(1)}%</span>
-                            </div>
-                            ${distanceInfo}
-                            <div class="detail-item">
-                                <span class="detail-label">Proximity</span>
-                                <span class="detail-value">${(details.proximity_score * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Budget Match</span>
-                                <span class="detail-value">${budgetLabels[place.budget]} (${(details.budget_score * 100).toFixed(1)}%)</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                const requestData = {
+                    country: country,
+                    city: city || null,
+                    suitability: suitability || null,
+                    max_distance: maxDistance,
+                    budget: isFinite(budget) ? budget : 2,
+                    preferences: preferences || []
+                };
+
+                // Add location data if available
+                if (location) {
+                    requestData.latitude = location.latitude;
+                    requestData.longitude = location.longitude;
+                }
+                
+                const response = await fetch('/api/recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data.restaurants, data.message);
+                    // Update the main map with results + user location
+                    if (window.Maps && typeof Maps.updateMainMap === 'function') {
+                        Maps.updateMainMap(data.restaurants || [], location);
+                    }
+                    if (window.Maps && typeof Maps.renderAllMiniMaps === 'function') {
+                        Maps.renderAllMiniMaps(data.restaurants || [], location);
+                    }
+                    // Render extra names, if any
+                    renderMoreRestaurants(data.more_restaurant_names || []);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Failed to get recommendations: ' + error.message);
+            }
         }
 
-        // init the app
-        document.addEventListener('DOMContentLoaded', function() {
-            initializePreferences();
-        });
+        function renderMoreRestaurants(names) {
+            const wrapper = document.getElementById('moreRestaurants');
+            const list = document.getElementById('moreRestaurantsList');
+            if (!names || names.length === 0) {
+                wrapper.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+            wrapper.style.display = 'block';
+            list.innerHTML = names.map(n => `<span style="display:inline-block; margin:4px; padding:6px 10px; background:#fff; border:1px solid #e6eaf0; border-radius:16px; font-size:0.9rem; color:#444;">${escapeHtml(n)}</span>`).join('');
+        }
+
+        // Display restaurant results
+        function displayResults(restaurants, message) {
+            hideLoading();
+            
+            if (!restaurants || restaurants.length === 0) {
+                restaurantList.innerHTML = `
+                    <div class="no-results">
+                        <h3>😔 No restaurants found</h3>
+                        <p>${message || 'Try adjusting your search criteria'}</p>
+                    </div>
+                `;
+            } else {
+                restaurantList.innerHTML = restaurants.map((restaurant, idx) => createRestaurantCard(restaurant, idx)).join('');
+            }
+            
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Create restaurant card HTML
+        function createRestaurantCard(restaurant, idx) {
+            const highlights = restaurant.highlights || {};
+            const scoring = restaurant.scoring_details || {};
+            
+            // Check if distance and proximity data is available
+            const hasProximityData = restaurant.distance !== undefined && scoring.proximity_score !== undefined;
+            const hasSummary = typeof restaurant.ai_summary === 'string' && restaurant.ai_summary.trim().length > 0;
+            
+            return `
+                <div class="restaurant-card">
+                    <div class="restaurant-header">
+                        <div>
+                            <div class="restaurant-name">${escapeHtml(restaurant.restaurant_name || 'Unknown Restaurant')}</div>
+                            <div style="color: #666; font-size: 0.9rem;">${escapeHtml(restaurant.address || 'Address not available')}</div>
+                        </div>
+                        <div class="restaurant-rank">#${restaurant.rank}</div>
+                    </div>
+                    
+                    <div class="restaurant-details">
+                        <div class="detail-item">
+                            <span>🍽️</span>
+                            <span><strong>Cuisine:</strong> ${escapeHtml(restaurant.type_of_cuisine || 'Various')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>⭐</span>
+                            <span><strong>Rating:</strong> ${restaurant.rating || 'N/A'}/5</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>💰</span>
+                            <span><strong>Price:</strong> $${restaurant.avg_price_usd || 'N/A'} USD</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>🎯</span>
+                            <span><strong>Best for:</strong> ${escapeHtml(restaurant.suitability || 'Any occasion')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>📍</span>
+                            <span><strong>City:</strong> ${escapeHtml(restaurant.city || 'Unknown')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>💬</span>
+                            <span><strong>Reviews:</strong> ${restaurant.num_reviews || 0}</span>
+                        </div>
+                        ${hasProximityData ? `
+                            <div class="detail-item proximity-score">
+                                <span>📏</span>
+                                <span><strong>Distance:</strong> ${restaurant.distance.toFixed(1)} km</span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    ${Object.keys(scoring).length > 0 ? `
+                        <div class="scoring-details">
+                            ${scoring.sentiment_score !== undefined ? `
+                                <div class="score-item">
+                                    <div class="score-value">${(scoring.sentiment_score * 100).toFixed(1)}%</div>
+                                    <div class="score-label">Sentiment</div>
+                                </div>
+                            ` : ''}
+                            ${scoring.preference_score !== undefined ? `
+                                <div class="score-item">
+                                    <div class="score-value">${(scoring.preference_score * 100).toFixed(1)}%</div>
+                                    <div class="score-label">Preference Match</div>
+                                </div>
+                            ` : ''}
+                            ${scoring.proximity_score !== undefined ? `
+                                <div class="score-item">
+                                    <div class="score-value">${(scoring.proximity_score * 100).toFixed(1)}%</div>
+                                    <div class="score-label">Proximity</div>
+                                </div>
+                            ` : ''}
+                            ${scoring.budget_score !== undefined ? `
+                                <div class="score-item">
+                                    <div class="score-value">${(scoring.budget_score * 100).toFixed(1)}%</div>
+                                    <div class="score-label">Budget Match</div>
+                                </div>
+                            ` : ''}
+                            ${scoring.final_score !== undefined ? `
+                                <div class="score-item">
+                                    <div class="score-value">${(scoring.final_score * 100).toFixed(1)}%</div>
+                                    <div class="score-label">Overall Score</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    ${restaurant.recommended_dish ? `
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 15px 0;">
+                            <strong>🍴 Recommended Dish:</strong> ${escapeHtml(restaurant.recommended_dish)}
+                        </div>
+                    ` : ''}
+                    
+                    ${hasSummary ? `
+                    <div class="ai-summary">
+                        <h4>🤖 AI Review Summary</h4>
+                            <p>${escapeHtml(restaurant.ai_summary)}</p>
+                        
+                        <div class="highlights">
+                            ${highlights.positive_aspects && highlights.positive_aspects.length > 0 ? `
+                                <div class="highlight-section">
+                                    <h5>✅ Positive Aspects</h5>
+                                    <div class="highlight-tags">
+                                        ${highlights.positive_aspects.map(aspect => `<span class="highlight-tag">${escapeHtml(aspect)}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${highlights.negative_aspects && highlights.negative_aspects.length > 0 ? `
+                                <div class="highlight-section">
+                                    <h5>⚠️ Areas for Improvement</h5>
+                                    <div class="highlight-tags">
+                                        ${highlights.negative_aspects.map(aspect => `<span class="highlight-tag">${escapeHtml(aspect)}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${highlights.recommended_dishes && highlights.recommended_dishes.length > 0 ? `
+                                <div class="highlight-section">
+                                    <h5>🍽️ Popular Dishes</h5>
+                                    <div class="highlight-tags">
+                                        ${highlights.recommended_dishes.map(dish => `<span class="highlight-tag">${escapeHtml(dish)}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="highlight-section">
+                                <h5>😊 Overall Sentiment</h5>
+                                <div class="highlight-tags">
+                                    <span class="highlight-tag">${escapeHtml(highlights.overall_sentiment || 'Neutral')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="place-map-box" style="margin-top: 12px;">
+                        <div id="map-${restaurant.place_id || ('place-' + idx)}" class="map-container" style="width: 100%; height: 220px; border-radius: 10px; border: 1px solid #eaeaea;"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show loading state
+        function showLoading() {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'ANALYZING RESTAURANTS...';
+            loading.style.display = 'block';
+            results.style.display = 'none';
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'GET RECOMMENDATIONS';
+            loading.style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `
+                <h3>❌ Error</h3>
+                <p>${escapeHtml(message)}</p>
+            `;
+            
+            // Insert after form section
+            const formSection = document.querySelector('.form-section');
+            formSection.parentNode.insertBefore(errorDiv, formSection.nextSibling);
+            
+            // Remove error after 5 seconds
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', init);
     </script>
+    <!-- Leaflet CSS/JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/js/maps.js"></script>
 </body>
 </html>

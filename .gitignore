@@ -1,5 +1,6 @@
 /src/models/roberta/
 /src/models/araberta/
+/data/cleaned_basir_restaurants.csv
 __pycache__/
 refactoring/
 .venv/

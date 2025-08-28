@@ -1,278 +1,341 @@
 import os
-import pandas as pd
-import json
 import sys
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-import asyncio
-import nest_asyncio
 import logging
 
-# Set up logging for the application
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
-logger = logging.getLogger(__name__)
-
-# Ensure the project root is in the system path for correct imports
-# project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# if project_root not in sys.path:
-#     sys.path.insert(0, project_root)
-
-# Apply nest_asyncio to allow asyncio to run inside Flask's event loop
-nest_asyncio.apply()
-
-# --- START OF FIX ---
-# Get the absolute path of the current script's directory (app)
+# Add the project root to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# Get the parent directory of the current directory (project root)
 project_root = os.path.dirname(current_dir)
-# Add the project root to the system path
 sys.path.insert(0, project_root)
 
-# Import from the new, refactored structure
-from config.settings import BASIR_JSON_PATH, SERPAPI_API_KEY, MAPS_API_KEY
-from app.services.data_collector_service import GoogleMapsCollectorBasir
-from app.repositories.data_repository import DataRepository
+# --- IMPORTS ---
+from app.models.data_models import RestaurantService
 from app.services.llm import LLMClient
+from app.services.ranking_service import RankingService
+from core_logic.utils.haversine import haversine
+from app.utils.scoring_utils import calculate_proximity_score
 from core_logic.nlp_models.sentiment_analyzer import ReviewSentimentAnalyzer
 from core_logic.nlp_models.preference_embedder import PreferenceEmbedder
-from app.services.ranking_service import rank_places
+from app.services.old_ranking_service import rank_places
+from config.settings import SERPAPI_API_KEY, MAPS_API_KEY, BASIR_JSON_PATH
+from app.repositories.data_repository import DataRepository
+from app.services.data_collector_service import GoogleMapsCollectorBasir
 from core_logic.research_agents.restaurent_search_agent import RestaurantSearchAgent
-from core_logic.utils.haversine import haversine
+import asyncio
+import json
 
-app = Flask(__name__)
+# --- Setup ---
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+
+app = Flask(__name__, template_folder='templates')
 CORS(app)
 
-# Global instances of services and repositories
-data_repo = DataRepository(raw_data_dir=os.path.dirname(BASIR_JSON_PATH))
+# Predefined attributes for the PreferenceEmbedder
+# PREDEFINED_ATTRIBUTES = [
+#     "Cozy", "Trendy", "Romantic", "Lively", "Quiet", "Elegant", "Casual", "Artistic",
+#     "Bohemian", "Family-Friendly", "Pet-Friendly", "Outdoor Seating", "Good for Groups",
+#     "Good for Solo", "Gourmet", "Comfort Food", "Healthy", "Vegan-Friendly", "Dessert",
+#     "Coffee", "Date", "Scenic View", "Parking Available", "Wheelchair Accessible",
+#     "Wi-Fi Available", "Workspace"
+# ]
+PREDEFINED_ATTRIBUTES = [
+    "Cozy", "Trendy", "Romantic", "Quiet", "Elegant", "Casual", 
+    "Outdoor", "Healthy", "Dessert",
+    "Coffee", "Parking", "Wheelchair",
+    "Wi-Fi"
+]
 
-google_maps_collector = None
-if MAPS_API_KEY:
-    try:
-        google_maps_collector = GoogleMapsCollectorBasir(api_key=MAPS_API_KEY, output_dir=os.path.dirname(BASIR_JSON_PATH))
-    except Exception as e:
-        logger.warning(f"Failed to initialize GoogleMapsCollectorBasir: {e}")
-
+# Initialize services
+restaurant_service = RestaurantService()
 llm_client = LLMClient()
+
+# Initialize NLP models for ranking
+try:
+    embedder = PreferenceEmbedder(model_name='jinaai/jina-embeddings-v3')
+    embedder.generate_attribute_embeddings(PREDEFINED_ATTRIBUTES)
+    app.logger.info("PreferenceEmbedder initialized successfully.")
+except Exception as e:
+    app.logger.warning(f"Could not load PreferenceEmbedder: {e}")
+    embedder = None
+
+try:
+    sentiment_analyzer = ReviewSentimentAnalyzer(
+        en_model_path='hayn404/roberta-finetuned',
+        ar_model_path='hayn404/araberta_finetuned'
+    )
+    app.logger.info("SentimentAnalyzer initialized successfully.")
+except Exception as e:
+    app.logger.warning(f"Could not load sentiment models: {e}")
+    sentiment_analyzer = None
+
+# Initialize ranking service with available models
+if embedder and sentiment_analyzer:
+    ranking_service = RankingService(embedder, sentiment_analyzer, PREDEFINED_ATTRIBUTES)
+    app.logger.info("RankingService initialized with NLP models.")
+else:
+    ranking_service = None
+    app.logger.warning("RankingService not available - using simple ranking.")
+
+# Helper to run coroutine results in sync context
+def run_sync(maybe_coro):
+    if asyncio.iscoroutine(maybe_coro):
+        return asyncio.run(maybe_coro)
+    return maybe_coro
+
+# Optional research/augmentation components (guarded by API keys)
+data_repo = None
 restaurant_agent = None
+try:
+    data_repo = DataRepository(raw_data_dir=os.path.dirname(BASIR_JSON_PATH))
+except Exception as e:
+    app.logger.info(f"DataRepository not initialized: {e}")
+
 if SERPAPI_API_KEY:
     try:
         restaurant_agent = RestaurantSearchAgent(llm_client=llm_client, serpapi_key=SERPAPI_API_KEY)
+        app.logger.info("RestaurantSearchAgent initialized.")
     except Exception as e:
-        logger.warning(f"Failed to initialize RestaurantSearchAgent: {e}")
+        app.logger.warning(f"Failed to initialize RestaurantSearchAgent: {e}")
 
-embedder = None
-sentiment_analyzer = None
-
-# Predefined attributes for the PreferenceEmbedder
-PREDEFINED_ATTRIBUTES = [
-    "Cozy", "Trendy", "Romantic", "Lively", "Quiet", "Elegant", "Casual", "Artistic",
-    "Bohemian", "Family-Friendly", "Pet-Friendly", "Outdoor Seating", "Good for Groups",
-    "Good for Solo", "Gourmet", "Comfort Food", "Healthy", "Vegan-Friendly", "Dessert",
-    "Coffee", "Date", "Scenic View", "Parking Available", "Wheelchair Accessible",
-    "Wi-Fi Available", "Workspace"
-]
-class MockSentimentAnalyzer:
-    """Mock sentiment analyzer for demo purposes."""
-    def analyze_reviews(self, reviews):
-        app.logger.debug("MockSentimentAnalyzer: Analyzing reviews.")
-        import random
-        for review in reviews:
-            review['sentiment_score'] = random.uniform(0.4, 0.9)
-        return reviews
-
-class MockPreferenceEmbedder:
-    """Mock preference embedder for demo purposes."""
-    def _init_(self):
-        self.attribute_names = PREDEFINED_ATTRIBUTES
-        app.logger.debug("MockPreferenceEmbedder: Initialized.")
-
-    def generate_attribute_embeddings(self, attributes):
-        self.attribute_names = attributes
-        app.logger.debug("MockPreferenceEmbedder: Generated attribute embeddings.")
-
-    def get_review_attribute_scores(self, review_text):
-        app.logger.debug("MockPreferenceEmbedder: Getting attribute scores for a review.")
-        import random
-        scores = {}
-        review_lower = review_text.lower()
-        for attr in self.attribute_names:
-            attr_lower = attr.lower()
-            if attr_lower in review_lower or attr_lower.replace('-', ' ') in review_lower:
-                scores[attr] = random.uniform(0.6, 0.9)
-            else:
-                scores[attr] = random.uniform(0.0, 0.3)
-        return scores
-def initialize_models():
-    """
-    Initializes the PreferenceEmbedder and SentimentAnalyzer models.
-    """
-    global embedder, sentiment_analyzer
-    app.logger.info("Initializing models...")
-
-    try:
-        embedder = PreferenceEmbedder(model_name='jinaai/jina-embeddings-v3')
-        embedder.generate_attribute_embeddings(PREDEFINED_ATTRIBUTES)
-        app.logger.info("PreferenceEmbedder initialized successfully.")
-
-        try:
-            sentiment_analyzer = ReviewSentimentAnalyzer(
-                en_model_path='hayn404/roberta-finetuned',
-                ar_model_path='hayn404/araberta_finetuned'
-            )
-            app.logger.info("SentimentAnalyzer initialized successfully.")
-        except Exception as e:
-            app.logger.warning(f"Could not load sentiment models: {e}")
-            app.logger.warning("Using mock sentiment analyzer for demo.")
-            sentiment_analyzer = MockSentimentAnalyzer()
-
-    except Exception as e:
-        app.logger.error(f"Error initializing models: {e}", exc_info=True)
-        app.logger.warning("Using mock models for demo.")
-        embedder = MockPreferenceEmbedder()
-        sentiment_analyzer = MockSentimentAnalyzer()
-
-    app.logger.info("All models initialized.")
-
-# Load initial places data
-places_data = data_repo.load_from_json(BASIR_JSON_PATH)
-
+# --- API Routes ---
 @app.route('/')
 def index():
     """Serves the main UI page."""
-    logger.info("Serving index.html.")
     return render_template('index.html')
 
-@app.route('/api/recommend', methods=['POST'])
-async def get_recommendations():
-    """
-    API endpoint for getting ranked place recommendations.
-    This is now an async function to support `await` calls.
-    """
-    logger.info("Received a recommendation request.")
+@app.route('/api/countries')
+def get_countries():
+    """Get list of available countries."""
+    try:
+        countries = restaurant_service.get_unique_countries()
+        data_source = restaurant_service.get_data_source_info()
+        
+        return jsonify({
+            "success": True, 
+            "countries": countries,
+            "data_source": data_source.get("source", "CSV"),
+            "total_restaurants": data_source.get("stats", {}).get("total_restaurants", 0)
+        })
+    except Exception as e:
+        app.logger.error(f"Error getting countries: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/cities', methods=['GET'])
+def get_cities():
+    """API endpoint to get cities for a specific country."""
+    try:
+        country = request.args.get('country')
+        if not country:
+            return jsonify({"success": False, "error": "Country parameter is required"}), 400
+        
+        cities = restaurant_service.get_unique_cities(country)
+        return jsonify({"success": True, "cities": cities})
+    except Exception as e:
+        app.logger.error(f"Error getting cities for country {country}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/suitabilities')
+def get_suitabilities():
+    """Get list of available suitability options."""
+    try:
+        suitabilities = restaurant_service.get_unique_suitabilities()
+        return jsonify({"success": True, "suitabilities": suitabilities})
+    except Exception as e:
+        app.logger.error(f"Error getting suitabilities: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/attributes')
+def get_attributes():
+    """Get predefined attribute names for preference selection."""
+    try:
+        return jsonify({"success": True, "attributes": PREDEFINED_ATTRIBUTES})
+    except Exception as e:
+        app.logger.error(f"Error getting attributes: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/recommendations', methods=['POST'])
+def get_recommendations():
+    """Get restaurant recommendations based on user preferences."""
     try:
         data = request.get_json()
-        if not data:
-            logger.error("Request body is empty or not valid JSON.")
-            return jsonify({"success": False, "error": "Invalid JSON payload."}), 400
-
-        user_city = data.get('city', '').strip().lower()
-        user_latitude = data.get('latitude')
-        user_longitude = data.get('longitude')
-        max_distance_km = float(data.get('max_distance', 50))
-
-        if not user_city and (user_latitude is None or user_longitude is None):
-            logger.warning("City or user coordinates are required.")
-            return jsonify({"success": False, "error": "City or user coordinates are required."}), 400
-
+        country = data.get('country')
+        city = data.get('city')
+        suitability = data.get('suitability')
+        # Optional proximity inputs from client
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        max_distance = data.get('max_distance', 10)
+        # Optional multi-factor inputs
+        user_preferences = data.get('preferences') or []
+        if isinstance(user_preferences, str):
+            # Allow either array of attributes or comma-separated string
+            user_preferences = [p.strip() for p in user_preferences.split(',') if p.strip()]
+        try:
+            user_budget = int(data.get('budget')) if data.get('budget') is not None else 2
+        except Exception:
+            user_budget = 2
         
-
-        # Determine the initial set of places to filter
-        if user_city:
-            filtered_places = [p for p in places_data if user_city in p.get('address', '').strip().lower()]
-        else:
-            filtered_places = places_data
+        if not country:
+            return jsonify({"success": False, "error": "Country is required"}), 400
         
-        # Check if the existing dataset is sufficient for the city, if not, augment it
-#        if len(filtered_places) < 10 and restaurant_agent and google_maps_collector:
-        if len(filtered_places) < 10 and restaurant_agent:
-
-            logger.info(f"Fewer than 10 places found in {user_city}. Augmenting data with search agent.")
-            new_places_json = await restaurant_agent.execute(query=user_city, max_urls_to_process=50)
-            new_place_names = json.loads(new_places_json).get("restaurants", [])
-            print(f"New place names found: {new_places_json}")
-            if new_place_names:
-                logger.info(f"Initiating Google Maps collection for {len(new_place_names)} new places.")
-                temp_csv_path = "temp_new_restaurants.csv"
-                pd.DataFrame({"Restaurant Name": new_place_names, "City": [user_city] * len(new_place_names)}).to_csv(temp_csv_path, index=False)
-                new_places_df, new_reviews_df = await google_maps_collector.collect_data(input_csv_path=temp_csv_path, max_places=len(new_place_names))
-                os.remove(temp_csv_path)
-
-                for _, row in new_places_df.iterrows():
-                    new_place = row.to_dict()
-                    new_place['reviews'] = new_reviews_df[new_reviews_df['place_name'] == new_place['name']].to_dict('records')
-                    places_data.append(new_place)
-
-                filtered_places = [p for p in places_data if user_city in p.get('address', '').strip().lower()]
-                logger.info(f"Dataset now has {len(filtered_places)} places for {user_city}.")
-            else:
-                logger.info("Search agent found no new places.")
-        elif len(filtered_places) < 10:
-            logger.info(f"Fewer than 10 places found in {user_city}, but augmentation agents are not available.")
-
-        if not filtered_places:
-            logger.warning(f"No places found for '{user_city}'.")
-            return jsonify({"success": False, "error": "No places found for the specified city."}), 404
+        app.logger.info(f"Getting recommendations for: Country={country}, City={city}, Suitability={suitability}")
         
-        # UPDATED LOGIC: Pre-process the list to ensure each place has both a 'coords' and 'budget' key.
+        restaurants = restaurant_service.find_restaurants(
+            country=country,
+            city=city if city != "Other" else None,
+            suitability=suitability
+        )
+        
+        extra_names = []
+
+        # Augment when too few places and agent/collector available (does not rely on JSON dataset)
+        if restaurants is not None and len(restaurants) < 1 and city and restaurant_agent and MAPS_API_KEY:
+            try:
+                app.logger.info(f"Fewer than 1 place found in {city}. Augmenting data with search agent.")
+                new_places_json = restaurant_agent.execute(query=city, max_urls_to_process=50)
+                new_places_json = run_sync(new_places_json)
+                new_place_names = []
+                try:
+                    new_place_names = json.loads(new_places_json).get("restaurants", [])
+                except Exception:
+                    app.logger.warning("Could not parse search agent output; skipping augmentation parse.")
+                if new_place_names:
+                    temp_csv_path = "temp_new_restaurants.csv"
+                    import pandas as pd
+                    # Cap how many new places to fetch to reduce load
+                    names_capped = new_place_names[:10]
+                    extra_names = names_capped
+                    pd.DataFrame({"Restaurant Name": names_capped, "City": [city] * len(names_capped)}).to_csv(temp_csv_path, index=False)
+                    # Instantiate collector with the temporary CSV input (class requires it at init)
+                    collector = GoogleMapsCollectorBasir(api_key=MAPS_API_KEY, input_csv_path=temp_csv_path, output_dir=os.path.dirname(BASIR_JSON_PATH))
+                    new_places_df, new_reviews_df = run_sync(collector.collect_data(max_places=len(names_capped)))
+                    try:
+                        os.remove(temp_csv_path)
+                    except Exception:
+                        pass
+                    for _, row in new_places_df.iterrows():
+                        new_place = row.to_dict()
+                        if 'name' not in new_place and 'Restaurant Name' in new_place:
+                            new_place['name'] = new_place['Restaurant Name']
+                        # Attach reviews if any
+                        if 'name' in new_place:
+                            new_place['reviews'] = new_reviews_df[new_reviews_df['place_name'] == new_place['name']].to_dict('records')
+                        if 'budget' not in new_place or new_place['budget'] is None:
+                            new_place['budget'] = 0
+                        restaurants.append(new_place)
+                    app.logger.info(f"Augmented dataset to {len(restaurants)} places for {city}.")
+            except Exception as e:
+                app.logger.warning(f"Augmentation failed: {e}")
+
+        if not restaurants:
+            return jsonify({"success": True, "restaurants": [], "message": "No restaurants found matching your criteria."})
+
+        # Build processed places for multi-factor ranking (ensure coords and budget present)
         processed_places = []
-        for place in filtered_places:
+        for place in restaurants:
             lat = place.get('latitude')
             lon = place.get('longitude')
-            
-            # Check for coordinates and create the 'coords' key
-            if lat is not None and lon is not None:
-                place['coords'] = (lat, lon)
-            else:
-                # If no coords, skip the place as it can't be ranked by proximity
-                continue 
-            
-            # Check for 'budget' and provide a default if it's missing
+            if lat is None or lon is None:
+                continue
+            place['coords'] = (lat, lon)
             if 'budget' not in place or place['budget'] is None:
-                # Use a default budget value to prevent KeyError
-                place['budget'] = 0 
-                
+                place['budget'] = place.get('price_level') if isinstance(place.get('price_level'), int) else 0
+            if 'reviews' not in place:
+                place['reviews'] = []
             processed_places.append(place)
 
         if not processed_places:
-            logger.warning("No places found with both valid coordinates and budget data.")
-            return jsonify({"success": False, "error": "No places found with valid data."}), 404
-            
-        # Determine user coordinates based on the request
-        user_coords = (user_latitude, user_longitude) if user_latitude is not None and user_longitude is not None else None
+            app.logger.warning("No places with valid coordinates to rank.")
+            return jsonify({"success": True, "restaurants": []})
 
-        # Build the user data dictionary for the ranking service
+        # Prepare user data for multi-factor ranking
+        user_coords = (float(latitude), float(longitude)) if latitude is not None and longitude is not None else None
+        preferences_weights = {attr: 1.0 for attr in user_preferences} if user_preferences else {}
         user_data = {
-            "preferences": data.get('preferences', {}),
-            "budget": data.get('budget', 2),
+            "preferences": preferences_weights,
+            "budget": user_budget,
             "coords": user_coords
         }
-        print("processed_places:", processed_places)
-        # The core ranking logic is now a standalone function
-        ranked_places = rank_places(
+
+        # Multi-factor ranking using the established ranking pipeline
+        ranked_restaurants = rank_places(
             user_data=user_data,
-            places_list=processed_places,  # Pass the new, pre-processed list
-            embedder=embedder,
-            sentiment_analyzer=sentiment_analyzer,
+            places_list=processed_places,
+            embedder=embedder if embedder else PreferenceEmbedder(model_name='jinaai/jina-embeddings-v3'),
+            sentiment_analyzer=sentiment_analyzer if sentiment_analyzer else ReviewSentimentAnalyzer(
+                en_model_path='hayn404/roberta-finetuned', ar_model_path='hayn404/araberta_finetuned'
+            ),
             predefined_attributes=PREDEFINED_ATTRIBUTES,
-            max_distance_km=max_distance_km
+            max_distance_km=float(max_distance)
         )
         
-        recommendations = [
-            {
-                "name": p["name"],
-                "address": p.get("address", "Unknown"),
-                "budget": p.get("budget", p.get("avg_price_usd", 0)),
-                "scoring_details": p.get("scoring_details", {}),
-                "distance": haversine(user_coords[0], user_coords[1], p['coords'][0], p['coords'][1]) if user_coords and p.get('coords') else None
-            } for p in ranked_places if user_coords is None or (p.get('coords') and haversine(user_coords[0], user_coords[1], p['coords'][0], p['coords'][1]) <= max_distance_km)
-        ]
+        enhanced_restaurants = []
+        for i, restaurant in enumerate(ranked_restaurants):
+            # Attach distance and proximity if user location is provided and restaurant has coords
+            try:
+                if latitude is not None and longitude is not None:
+                    rest_lat = restaurant.get('latitude')
+                    rest_lon = restaurant.get('longitude')
+                    if rest_lat is not None and rest_lon is not None:
+                        distance_km = haversine(float(latitude), float(longitude), float(rest_lat), float(rest_lon))
+                        restaurant['distance'] = distance_km
+                        # Normalize proximity score using the existing utility
+                        proximity_score = calculate_proximity_score(
+                            (float(latitude), float(longitude)), (float(rest_lat), float(rest_lon)), max_distance_km=float(max_distance)
+                        )
+                        scoring_details = restaurant.get('scoring_details', {}) or {}
+                        scoring_details['proximity_score'] = round(proximity_score, 4)
+                        restaurant['scoring_details'] = scoring_details
+            except Exception as e:
+                app.logger.warning(f"Proximity computation failed for {restaurant.get('restaurant_name', restaurant.get('name', 'Unknown'))}: {e}")
+            
+            # --- THIS IS THE FIX ---
+            # Correctly extract review text from list of dictionaries
+            reviews = restaurant.get('reviews', [])
+            reviews_text = ""
+            if isinstance(reviews, list) and reviews:
+                # Extract the 'text' from each dict, handling cases where 'text' might be missing
+                review_texts = [str(review.get('text', '')) for review in reviews if isinstance(review, dict)]
+                reviews_text = " ".join(review_texts)
+            # ---------------------
+
+            if reviews_text.strip():
+                try:
+                    ai_summary = llm_client.summarize_reviews(reviews_text, restaurant.get('restaurant_name', ''))
+                    highlights = llm_client.extract_review_highlights(reviews_text)
+                except Exception as e:
+                    app.logger.warning(f"LLM processing failed for restaurant {restaurant.get('restaurant_name', 'Unknown')}: {e}")
+                    ai_summary = "AI summary generation failed."
+                    highlights = {"positive_aspects": [], "negative_aspects": [], "recommended_dishes": [], "overall_sentiment": "neutral"}
+            else:
+                # No reviews: treat as neutral and omit summary entirely for UI to hide the card
+                ai_summary = None
+                highlights = {"positive_aspects": [], "negative_aspects": [], "recommended_dishes": [], "overall_sentiment": "neutral"}
+
+            if ai_summary:
+                restaurant['ai_summary'] = ai_summary
+            restaurant['highlights'] = highlights
+            enhanced_restaurants.append(restaurant)
         
-        if user_coords:
-            recommendations.sort(key=lambda r: r['distance'])
-
-        return jsonify({"success": True, "recommendations": recommendations})
-
+        # If user location provided, filter by max_distance and sort by distance asc
+        if latitude is not None and longitude is not None:
+            enhanced_restaurants = [r for r in enhanced_restaurants if r.get('distance') is not None and r['distance'] <= float(max_distance)]
+            enhanced_restaurants.sort(key=lambda r: r.get('distance', float('inf')))
+        
+        # Limit to top # after filtering/sorting and assign rank
+        enhanced_restaurants = enhanced_restaurants[:20]
+        for idx, r in enumerate(enhanced_restaurants):
+            r['rank'] = idx + 1
+        
+        return jsonify({"success": True, "restaurants": enhanced_restaurants, "more_restaurant_names": extra_names})
+        
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+        app.logger.error(f"Error getting recommendations: {e}")
+        # Also log the traceback for detailed debugging
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
-    
-@app.route('/api/attributes')
-def get_attributes():
-    """API endpoint to get predefined attributes."""
-    logger.info("Serving predefined attributes.")
-    return jsonify({"attributes": PREDEFINED_ATTRIBUTES})
-
 if __name__ == '__main__':
-    initialize_models()
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=False)
